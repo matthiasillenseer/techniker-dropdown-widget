@@ -1,16 +1,58 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Techniker Dropdown</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8">
+  <title>TechnikerDropdown Widget</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 10px; }
+    select { width: 100%; padding: 8px; font-size: 14px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+  </style>
 </head>
 <body>
-  <label id="label-techniker" for="techniker"></label>
-  <select id="techniker"></select>
+  <label for="technikerDropdown">Techniker auswählen:</label>
+  <select id="technikerDropdown"></select>
 
   <script src="https://cdn.jsdelivr.net/npm/jotform-custom-widget@1.3.0/lib/iframeCommunicator.js"></script>
-  <script src="widget.js"></script>
+  <script>
+    (function() {
+      // 1) Roh‑Parameter aus dem iframe-Attribut lesen
+      let config = {};
+      try {
+        const raw = window.frameElement?.getAttribute('data-params');
+        if (raw) {
+          config = JSON.parse(raw);
+        }
+      } catch (e) {
+        console.error('Fehler beim Parsen der Widget-JSON:', e);
+      }
+
+      // 2) Werte extrahieren (dein JSON erwartet hier data.items und data.default)
+      const items = (config.data?.items || []).map(i => i.toString());
+      const def   = config.data?.default || '';
+
+      // 3) Dropdown füllen
+      const dropdown = document.getElementById('technikerDropdown');
+      items.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.text  = name;
+        if (name === def) opt.selected = true;
+        dropdown.appendChild(opt);
+      });
+
+      // 4) Auswahl zurück an Jotform senden
+      dropdown.addEventListener('change', () => {
+        JFCustomWidget.sendData({ value: dropdown.value });
+      });
+      // initial senden
+      JFCustomWidget.sendData({ value: dropdown.value });
+
+      // 5) Höhe des Widgets an Jotform übergeben
+      JFCustomWidget.subscribe('ready', () => {
+        JFCustomWidget.setHeight(document.body.scrollHeight);
+      });
+    })();
+  </script>
 </body>
 </html>
