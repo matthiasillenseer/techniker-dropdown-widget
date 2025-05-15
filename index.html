@@ -5,33 +5,39 @@
   <title>TechnikerDropdown Widget</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 10px; }
-    select { width: 100%; padding: 8px; font-size: 14px; }
     label { display: block; margin-bottom: 5px; font-weight: bold; }
+    select { width: 100%; padding: 8px; font-size: 14px; }
   </style>
 </head>
 <body>
   <label for="technikerDropdown">Techniker auswählen:</label>
   <select id="technikerDropdown"></select>
 
+  <!-- JotForm-Communicator laden -->
   <script src="https://cdn.jsdelivr.net/npm/jotform-custom-widget@1.3.0/lib/iframeCommunicator.js"></script>
   <script>
     (function() {
-      // 1) Roh‑Parameter aus dem iframe-Attribut lesen
       let config = {};
+
       try {
-        const raw = window.frameElement?.getAttribute('data-params');
-        if (raw) {
-          config = JSON.parse(raw);
-        }
+        // 1) Roh‑Parameter aus dem iFrame-Attribut holen
+        const raw = window.frameElement?.getAttribute('data-params') || '';
+        // 2) URL‑decode, falls nötig
+        const jsonString = decodeURIComponent(raw);
+        // 3) JSON parsen
+        config = JSON.parse(jsonString);
+        console.log("Widget-Konfiguration:", config);
       } catch (e) {
-        console.error('Fehler beim Parsen der Widget-JSON:', e);
+        console.error("Fehler beim Parsen der Widget-JSON:", e);
       }
 
-      // 2) Werte extrahieren (dein JSON erwartet hier data.items und data.default)
-      const items = (config.data?.items || []).map(i => i.toString());
-      const def   = config.data?.default || '';
+      // 4) Werte extrahieren
+      const items = Array.isArray(config.data?.items)
+        ? config.data.items.map(i => i.toString())
+        : [];
+      const def = config.data?.default?.toString() || '';
 
-      // 3) Dropdown füllen
+      // 5) Dropdown füllen
       const dropdown = document.getElementById('technikerDropdown');
       items.forEach(name => {
         const opt = document.createElement('option');
@@ -41,14 +47,14 @@
         dropdown.appendChild(opt);
       });
 
-      // 4) Auswahl zurück an Jotform senden
+      // 6) Auswahl zurück an Jotform senden
       dropdown.addEventListener('change', () => {
         JFCustomWidget.sendData({ value: dropdown.value });
       });
-      // initial senden
+      // initialen Wert senden
       JFCustomWidget.sendData({ value: dropdown.value });
 
-      // 5) Höhe des Widgets an Jotform übergeben
+      // 7) Widget-Höhe anpassen
       JFCustomWidget.subscribe('ready', () => {
         JFCustomWidget.setHeight(document.body.scrollHeight);
       });
