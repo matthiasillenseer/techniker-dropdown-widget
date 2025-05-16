@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Techniker Dropdown Widget (statisch)</title>
+    <title>Techniker Dropdown Widget (dynamisch)</title>
     <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <style>
       body {
@@ -28,47 +28,57 @@
   </head>
   <body>
     <div id="main">
-      <label for="technikerSelect" id="labelText">Techniker auswählen:</label>
-      <select id="technikerSelect"></select>
+      <label for="technikerSelect">Techniker auswählen:</label>
+      <select id="technikerSelect">
+        <option value="">Lade Techniker…</option>
+      </select>
     </div>
 
     <script type="text/javascript">
       JFCustomWidget.subscribe("ready", function(){
-        // 1. Statische Techniker-Liste
-        var technikerArray = [
-          "Eugen Duppa",
-          "Matthias Illenseer",
-          "Alex Müller",
-          "Marco Weber",
-          "Andre Hammelmann",
-          "Franz Fischer"
-        ];
-
-        // 2. <select> mit den Techniker-Namen befüllen
         var select = document.getElementById('technikerSelect');
-        technikerArray.forEach(function(name){
-          var opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
 
-        // 3. Standard-Auswahl setzen und initial senden
-        if (technikerArray.length > 0) {
-          select.value = technikerArray[0];
-          JFCustomWidget.sendData({ value: select.value });
-        }
+        // JSON mit Techniker‑Liste laden
+        fetch('https://matthiasillenseer.github.io/techniker-dropdown-widget/techniker.json')
+          .then(function(res){ 
+            if (!res.ok) throw new Error('Netzwerkantwort war nicht OK');
+            return res.json();
+          })
+          .then(function(technikerArray){
+            // Alte Optionen leeren
+            select.innerHTML = '';
 
-        // 4. Auf Änderungen reagieren und Wert sofort senden
-        select.addEventListener('change', function(){
-          JFCustomWidget.sendData({ value: select.value });
-        });
+            // Neue Optionen anlegen
+            technikerArray.forEach(function(name){
+              var opt = document.createElement('option');
+              opt.value = name;
+              opt.textContent = name;
+              select.appendChild(opt);
+            });
 
-        // 5. iFrame-Höhe anpassen
-        JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
+            // Standard-Auswahl setzen und initial senden
+            if (technikerArray.length > 0) {
+              select.value = technikerArray[0];
+              JFCustomWidget.sendData({ value: select.value });
+            }
+
+            // Auf Änderungen reagieren und Wert sofort senden
+            select.addEventListener('change', function(){
+              JFCustomWidget.sendData({ value: this.value });
+            });
+
+            // iFrame-Höhe anpassen
+            JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
+          })
+          .catch(function(err){
+            console.error('Fehler beim Laden der Techniker‑Liste:', err);
+            // Fehlermeldung im Dropdown anzeigen
+            select.innerHTML = '<option value="">Liste konnte nicht geladen werden</option>';
+            JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
+          });
       });
 
-      // 6. Beim Formular-Submit den finalen Wert senden
+      // Beim Formular-Submit den finalen Wert senden
       JFCustomWidget.subscribe("submit", function(){
         var selected = document.getElementById('technikerSelect').value;
         JFCustomWidget.sendSubmit({
