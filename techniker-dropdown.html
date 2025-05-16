@@ -2,100 +2,106 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Techniker Dropdown mit Dienstleister & Passwort</title>
+    <title>Techniker Dropdown Widget (reload on change)</title>
     <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <style>
-      body { font-family: Arial, sans-serif; margin:0; padding:10px; }
-      #main { width:100%; }
-      label { display:block; margin-bottom:5px; font-weight:bold; }
-      select, input[type=password] { width:100%; padding:8px; font-size:1em; box-sizing:border-box; margin-bottom:10px; }
-      .error { color: red; font-size:0.9em; }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+      }
+      #main {
+        width: 100%;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      select {
+        width: 100%;
+        padding: 8px;
+        font-size: 1em;
+        box-sizing: border-box;
+      }
     </style>
   </head>
   <body>
     <div id="main">
-      <label for="providerSelect">Dienstleister auswählen:</label>
-      <select id="providerSelect"><option value="">Bitte wählen…</option></select>
-
-      <label for="pwInput">Passwort:</label>
-      <input id="pwInput" type="password" placeholder="Passwort eingeben" />
-      <div id="pwError" class="error" style="display:none;">Falsches Passwort für den ausgewählten Dienstleister</div>
-
       <label for="technikerSelect">Techniker auswählen:</label>
-      <select id="technikerSelect" disabled><option value="">Zuerst Dienstleister & Passwort</option></select>
+      <select id="technikerSelect">
+        <option value="">Lade Techniker…</option>
+      </select>
     </div>
 
-    <script>
-    (function(){
-      var providerSelect = document.getElementById('providerSelect');
-      var pwInput       = document.getElementById('pwInput');
-      var pwError       = document.getElementById('pwError');
-      var techSelect    = document.getElementById('technikerSelect');
-      var jsonUrl       = 'https://matthiasillenseer.github.io/techniker-dropdown-widget1/techniker.json';
-      var dataStore;
+    <script type="text/javascript">
+      (function(){
+        var select = document.getElementById('technikerSelect');
+        var jsonUrl = 'https://deine-domain.de/widgets/techniker.json';
 
-      function loadData(callback) {
-        fetch(jsonUrl + '?t=' + Date.now())
-          .then(function(res){ if(!res.ok) throw Error('Load failed'); return res.json(); })
-          .then(function(json){ dataStore = json; callback(); })
-          .catch(function(){ console.error('Die JSON-Datei konnte nicht geladen werden.'); });
-      }
+        // Funktion zum Laden und Befüllen
+        function loadTechniker(callback) {
+          // Cache-Busting
+          fetch(jsonUrl + '?t=' + Date.now())
+            .then(function(res){
+              if (!res.ok) throw new Error('Netzwerkantwort war nicht OK');
+              return res.json();
+            })
+            .then(function(technikerArray){
+              // Alte Optionen merken
+              var previous = select.value;
+              // Select leeren
+              select.innerHTML = '';
+              // Neue Optionen anlegen
+              technikerArray.forEach(function(name){
+                var opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+              });
+              // Wenn vorige Auswahl noch existiert, setzen, sonst ersten Eintrag
+              if (technikerArray.indexOf(previous) !== -1) {
+                select.value = previous;
+              } else if (technikerArray.length > 0) {
+                select.value = technikerArray[0];
+              }
+              // Callback z.B. zum Senden verwenden
+              if (typeof callback === 'function') callback(select.value);
 
-      function fillProviders() {
-        providerSelect.innerHTML = '<option value="">Bitte wählen…</option>';
-        Object.keys(dataStore).forEach(function(provider){
-          var opt = document.createElement('option');
-          opt.value = provider;
-          opt.textContent = provider;
-          providerSelect.appendChild(opt);
-        });
-        JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
-      }
-
-      function tryUnlock() {
-        pwError.style.display = 'none';
-        var sel = providerSelect.value;
-        if(!sel || !dataStore[sel]) {
-          techSelect.disabled = true;
-          techSelect.innerHTML = '<option value="">Bitte Dienstleister wählen</option>';
-          return;
+              // Höhe anpassen
+              JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
+            })
+            .catch(function(err){
+              console.error('Fehler beim Laden der Techniker‑Liste:', err);
+              select.innerHTML = '<option value="">Liste konnte nicht geladen werden</option>';
+              JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
+            });
         }
-        if(pwInput.value !== dataStore[sel].password) {
-          techSelect.disabled = true;
-          pwError.style.display = 'block';
-          techSelect.innerHTML = '<option value="">Zugriff verweigert</option>';
-        } else {
-          pwError.style.display = 'none';
-          techSelect.disabled = false;
-          buildTechOptions(dataStore[sel].techniker);
-        }
-        JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
-      }
 
-      function buildTechOptions(list) {
-        techSelect.innerHTML = '';
-        list.forEach(function(name){
-          var o = document.createElement('option'); o.value = name; o.textContent = name;
-          techSelect.appendChild(o);
+        // Widget ready: initial laden
+        JFCustomWidget.subscribe("ready", function(){
+          loadTechniker(function(val){
+            // direkt initialen Wert senden
+            JFCustomWidget.sendData({ value: val });
+          });
+
+          // Bei jeder Änderung neu laden und dann senden
+          select.addEventListener('change', function(){
+            loadTechniker(function(val){
+              JFCustomWidget.sendData({ value: val });
+            });
+          });
         });
-        techSelect.value = list.length ? list[0] : '';
-        JFCustomWidget.sendData({ value: techSelect.value });
-      }
 
-      JFCustomWidget.subscribe("ready", function(){
-        loadData(fillProviders);
-
-        providerSelect.addEventListener('change', tryUnlock);
-        pwInput.addEventListener('input', tryUnlock);
-        techSelect.addEventListener('change', function(){
-          JFCustomWidget.sendData({ value: techSelect.value });
+        // Beim Formular-Submit den finalen Wert senden
+        JFCustomWidget.subscribe("submit", function(){
+          JFCustomWidget.sendSubmit({
+            valid: true,
+            value: select.value
+          });
         });
-      });
 
-      JFCustomWidget.subscribe("submit", function(){
-        JFCustomWidget.sendSubmit({ valid: !techSelect.disabled, value: techSelect.value });
-      });
-    })();
+      })();
     </script>
   </body>
 </html>
