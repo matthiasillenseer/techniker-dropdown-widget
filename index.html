@@ -1,79 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Techniker Dropdown</title>
+  <meta charset="UTF-8"/>
+  <title>Techniker Dropdown Widget</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    select {
-      width: 100%;
-      padding: 8px;
-      font-size: 16px;
-    }
+    body { font-family: Arial, sans‑serif; padding: 10px; }
+    label { display: block; margin‑bottom: 5px; font‑weight: bold; }
+    select { width: 100%; padding: 8px; font‑size: 14px; }
   </style>
 </head>
 <body>
-
-  <label for="technikerSelect">Bitte Techniker auswählen:</label>
+  <label for="technikerSelect">Techniker auswählen:</label>
   <select id="technikerSelect">
-    <option value="" disabled selected>Wähle einen Techniker</option>
+    <option value="" disabled>Bitte wählen…</option>
   </select>
 
+  <script src="https://cdn.jsdelivr.net/npm/jotform-custom-widget@1.3.0/lib/iframeCommunicator.js"></script>
   <script>
-    // Funktion zum Parsen von data-params
-    function getParams() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const raw = urlParams.get('data-params');
-      if (!raw) return null;
+    (function() {
+      // 1. KeyValue-Pair-Array aus data-widget-params lesen
+      let raw = window.frameElement?.getAttribute('data-widget-params') || '[]';
+      let kvArray;
       try {
-        return JSON.parse(decodeURIComponent(raw));
+        kvArray = JSON.parse(decodeURIComponent(raw));
       } catch (e) {
-        console.error("Fehler beim Parsen von data-params:", e);
-        return null;
+        console.error('Ungültiges KeyValue-Pair-JSON:', e);
+        kvArray = [];
       }
-    }
 
-    // Dropdown befüllen
-    function populateDropdown(config) {
-      const dropdown = document.getElementById('technikerSelect');
-      if (!config || !config.data || !Array.isArray(config.data.items)) return;
-
-      config.data.items.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        dropdown.appendChild(option);
+      // 2. In Objekt umbauen
+      const params = {};
+      kvArray.forEach(kv => {
+        params[kv.key] = kv.value;
       });
 
-      if (config.data.default) {
-        dropdown.value = config.data.default;
-      }
-    }
-
-    // Sende ausgewählten Wert zurück an Jotform
-    function setupPostMessage() {
+      // 3. Dropdown befüllen
+      const items   = Array.isArray(params.items)   ? params.items   : [];
+      const def     = typeof params.default === 'string' ? params.default : '';
       const dropdown = document.getElementById('technikerSelect');
-      function sendValue() {
-        const value = dropdown.value;
-        parent.postMessage({ action: "setValue", value }, "*");
+
+      items.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === def) opt.selected = true;
+        dropdown.appendChild(opt);
+      });
+
+      // 4. Wert an Jotform senden
+      function send() {
+        JFCustomWidget.sendData({ value: dropdown.value });
       }
+      dropdown.addEventListener('change', send);
+      send();
 
-      dropdown.addEventListener("change", sendValue);
-      sendValue(); // auch initial senden
-    }
-
-    // Initialisierung
-    const config = getParams();
-    if (config && config.data && Array.isArray(config.data.items)) {
-      populateDropdown(config);
-      setupPostMessage();
-    } else {
-      document.body.innerHTML = "<p style='color:red;'>Fehler: Keine gültigen Daten übergeben.</p>";
-    }
+      // 5. Höhe anpassen
+      JFCustomWidget.subscribe('ready', () => {
+        JFCustomWidget.setHeight(document.body.scrollHeight);
+      });
+    })();
   </script>
-
 </body>
 </html>
