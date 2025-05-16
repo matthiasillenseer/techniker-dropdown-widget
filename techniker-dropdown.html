@@ -2,31 +2,46 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <title>Techniker Dropdown Widget</title>
     <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <style>
-      body { font-family: Arial, sans-serif; padding: 10px; }
-      label { display: block; margin-bottom: 5px; }
-      select { width: 100%; padding: 8px; font-size: 1em; }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+      }
+      #main {
+        width: 100%;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      select {
+        width: 100%;
+        padding: 8px;
+        font-size: 1em;
+        box-sizing: border-box;
+      }
     </style>
   </head>
   <body>
     <div id="main">
       <label for="technikerSelect" id="labelText">Techniker auswählen:</label>
-      <select id="technikerSelect">
-        <!-- Optionen werden per JavaScript gefüllt -->
-      </select>
+      <select id="technikerSelect"></select>
     </div>
 
     <script type="text/javascript">
       JFCustomWidget.subscribe("ready", function(){
-        // 1. Parameter aus Jotform abrufen
+        // 1. Parameter "TechnikerListe" auslesen (Komma-getrennt)
         var listParam = JFCustomWidget.getWidgetSetting('TechnikerListe') || '';
-        // 2. In Array umwandeln (Komma-getrennt)
-        var technikerArray = listParam.split(',').map(function(name){
-          return name.trim();
-        }).filter(function(name){ return name.length > 0; });
+        var technikerArray = listParam
+          .split(',')
+          .map(function(name){ return name.trim(); })
+          .filter(function(name){ return name.length > 0; });
 
-        // 3. <select> mit Optionen befüllen
+        // 2. <select> mit Optionen befüllen
         var select = document.getElementById('technikerSelect');
         technikerArray.forEach(function(name){
           var opt = document.createElement('option');
@@ -35,16 +50,23 @@
           select.appendChild(opt);
         });
 
-        // 4. Standard‑Option setzen, falls keine Auswahl erfolgt
+        // 3. Standard-Auswahl setzen
         if (technikerArray.length > 0) {
           select.value = technikerArray[0];
+          // beim Initialisieren schon einmal senden
+          JFCustomWidget.sendData({ value: select.value });
         }
 
-        // Optional: iFrame-Größe an Inhalt anpassen
+        // 4. Auf Änderungen reagieren und Wert sofort senden
+        select.addEventListener('change', function(){
+          JFCustomWidget.sendData({ value: select.value });
+        });
+
+        // 5. iFrame-Höhe anpassen
         JFCustomWidget.requestFrameResize({ height: document.body.scrollHeight });
       });
 
-      // Bei Formular-Submit: Ausgewählten Techniker senden
+      // 6. Beim Formular-Submit den finalen Wert senden
       JFCustomWidget.subscribe("submit", function(){
         var selected = document.getElementById('technikerSelect').value;
         JFCustomWidget.sendSubmit({
