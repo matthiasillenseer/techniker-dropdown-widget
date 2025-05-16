@@ -1,60 +1,64 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Techniker Dropdown Widget</title>
+  <meta charset="UTF-8" />
+  <title>Techniker‑Dropdown</title>
   <style>
     body { font-family: Arial, sans‑serif; padding: 10px; }
-    label { display: block; margin‑bottom: 5px; font‑weight: bold; }
-    select { width: 100%; padding: 8px; font‑size: 14px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    select { width: 100%; padding: 8px; font-size: 14px; }
   </style>
 </head>
 <body>
-  <label for="technikerSelect">Techniker auswählen:</label>
-  <select id="technikerSelect">
-    <option value="" disabled>Bitte wählen…</option>
+  <label for="techSelect">Techniker auswählen:</label>
+  <select id="techSelect">
+    <option value="" disabled>Lade…</option>
   </select>
 
   <script src="https://cdn.jsdelivr.net/npm/jotform-custom-widget@1.3.0/lib/iframeCommunicator.js"></script>
   <script>
-    (function() {
-      // 1. KeyValue-Pair-Array aus data-widget-params lesen
+    (function(){
+      // 1) Parameter aus Jotform (Key-Value-Pair) lesen
       let raw = window.frameElement?.getAttribute('data-widget-params') || '[]';
-      let kvArray;
-      try {
-        kvArray = JSON.parse(decodeURIComponent(raw));
-      } catch (e) {
-        console.error('Ungültiges KeyValue-Pair-JSON:', e);
-        kvArray = [];
-      }
+      let kv;
+      try { kv = JSON.parse(decodeURIComponent(raw)); }
+      catch(e){ console.error('Param-Parse error', e); kv = []; }
 
-      // 2. In Objekt umbauen
       const params = {};
-      kvArray.forEach(kv => {
-        params[kv.key] = kv.value;
-      });
+      kv.forEach(o => params[o.key] = o.value);
 
-      // 3. Dropdown befüllen
-      const items   = Array.isArray(params.items)   ? params.items   : [];
-      const def     = typeof params.default === 'string' ? params.default : '';
-      const dropdown = document.getElementById('technikerSelect');
-
-      items.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        if (name === def) opt.selected = true;
-        dropdown.appendChild(opt);
-      });
-
-      // 4. Wert an Jotform senden
-      function send() {
-        JFCustomWidget.sendData({ value: dropdown.value });
+      // 2) apiUrl aus Param lesen
+      const apiUrl = params.apiUrl;
+      if(!apiUrl){
+        console.error('apiUrl fehlt');
+        return;
       }
-      dropdown.addEventListener('change', send);
-      send();
 
-      // 5. Höhe anpassen
+      // 3) Fetch-Techniker-Liste
+      fetch(apiUrl)
+        .then(r => r.json())
+        .then(data => {
+          const items = Array.isArray(data.items) ? data.items : [];
+          const def   = params.default || '';
+          const sel   = document.getElementById('techSelect');
+          sel.innerHTML = '';
+          items.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name; opt.textContent = name;
+            if(name === def) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          function send(){ JFCustomWidget.sendData({value: sel.value}); }
+          sel.addEventListener('change', send);
+          send();
+        })
+        .catch(err => {
+          console.error('Fetch error', err);
+          document.getElementById('techSelect').innerHTML =
+            '<option value="" disabled>Fehler beim Laden</option>';
+        });
+
+      // 4) iFrame Höhe anpassen
       JFCustomWidget.subscribe('ready', () => {
         JFCustomWidget.setHeight(document.body.scrollHeight);
       });
