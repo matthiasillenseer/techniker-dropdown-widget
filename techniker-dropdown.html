@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Techniker Dropdown Widget</title>
+    <title>Techniker Dropdown Widget (statisch)</title>
     <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <style>
       body {
@@ -34,14 +34,16 @@
 
     <script type="text/javascript">
       JFCustomWidget.subscribe("ready", function(){
-        // 1. Parameter "TechnikerListe" auslesen (Komma-getrennt)
-        var listParam = JFCustomWidget.getWidgetSetting('TechnikerListe') || '';
-        var technikerArray = listParam
-          .split(',')
-          .map(function(name){ return name.trim(); })
-          .filter(function(name){ return name.length > 0; });
+        // 1. Statische Techniker-Liste
+        var technikerArray = [
+          "Markus Jasper",
+          "Matthias Illenseer",
+          "Alex Müller",
+          "Marco Weber",
+          "Franz Fischer"
+        ];
 
-        // 2. <select> mit Optionen befüllen
+        // 2. <select> mit den Techniker-Namen befüllen
         var select = document.getElementById('technikerSelect');
         technikerArray.forEach(function(name){
           var opt = document.createElement('option');
@@ -50,10 +52,9 @@
           select.appendChild(opt);
         });
 
-        // 3. Standard-Auswahl setzen
+        // 3. Standard-Auswahl setzen und initial senden
         if (technikerArray.length > 0) {
           select.value = technikerArray[0];
-          // beim Initialisieren schon einmal senden
           JFCustomWidget.sendData({ value: select.value });
         }
 
