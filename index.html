@@ -1,64 +1,79 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>TechnikerDropdown Widget</title>
+  <meta charset="UTF-8" />
+  <title>Techniker Dropdown</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 10px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    select { width: 100%; padding: 8px; font-size: 14px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
-  <label for="technikerDropdown">Techniker auswählen:</label>
-  <select id="technikerDropdown"></select>
 
-  <!-- JotForm-Communicator laden -->
-  <script src="https://cdn.jsdelivr.net/npm/jotform-custom-widget@1.3.0/lib/iframeCommunicator.js"></script>
+  <label for="technikerSelect">Bitte Techniker auswählen:</label>
+  <select id="technikerSelect">
+    <option value="" disabled selected>Wähle einen Techniker</option>
+  </select>
+
   <script>
-    (function() {
-      let config = {};
-
+    // Funktion zum Parsen von data-params
+    function getParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const raw = urlParams.get('data-params');
+      if (!raw) return null;
       try {
-        // 1) Roh‑Parameter aus dem iFrame-Attribut holen
-        const raw = window.frameElement?.getAttribute('data-params') || '';
-        // 2) URL‑decode, falls nötig
-        const jsonString = decodeURIComponent(raw);
-        // 3) JSON parsen
-        config = JSON.parse(jsonString);
-        console.log("Widget-Konfiguration:", config);
+        return JSON.parse(decodeURIComponent(raw));
       } catch (e) {
-        console.error("Fehler beim Parsen der Widget-JSON:", e);
+        console.error("Fehler beim Parsen von data-params:", e);
+        return null;
+      }
+    }
+
+    // Dropdown befüllen
+    function populateDropdown(config) {
+      const dropdown = document.getElementById('technikerSelect');
+      if (!config || !config.data || !Array.isArray(config.data.items)) return;
+
+      config.data.items.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        dropdown.appendChild(option);
+      });
+
+      if (config.data.default) {
+        dropdown.value = config.data.default;
+      }
+    }
+
+    // Sende ausgewählten Wert zurück an Jotform
+    function setupPostMessage() {
+      const dropdown = document.getElementById('technikerSelect');
+      function sendValue() {
+        const value = dropdown.value;
+        parent.postMessage({ action: "setValue", value }, "*");
       }
 
-      // 4) Werte extrahieren
-      const items = Array.isArray(config.data?.items)
-        ? config.data.items.map(i => i.toString())
-        : [];
-      const def = config.data?.default?.toString() || '';
+      dropdown.addEventListener("change", sendValue);
+      sendValue(); // auch initial senden
+    }
 
-      // 5) Dropdown füllen
-      const dropdown = document.getElementById('technikerDropdown');
-      items.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.text  = name;
-        if (name === def) opt.selected = true;
-        dropdown.appendChild(opt);
-      });
-
-      // 6) Auswahl zurück an Jotform senden
-      dropdown.addEventListener('change', () => {
-        JFCustomWidget.sendData({ value: dropdown.value });
-      });
-      // initialen Wert senden
-      JFCustomWidget.sendData({ value: dropdown.value });
-
-      // 7) Widget-Höhe anpassen
-      JFCustomWidget.subscribe('ready', () => {
-        JFCustomWidget.setHeight(document.body.scrollHeight);
-      });
-    })();
+    // Initialisierung
+    const config = getParams();
+    if (config && config.data && Array.isArray(config.data.items)) {
+      populateDropdown(config);
+      setupPostMessage();
+    } else {
+      document.body.innerHTML = "<p style='color:red;'>Fehler: Keine gültigen Daten übergeben.</p>";
+    }
   </script>
+
 </body>
 </html>
